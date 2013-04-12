@@ -1,20 +1,13 @@
-### Applied Natural Language Processing
+### emokids
 
-This is the course repository for Applied Natural Language Processing, with stubs for homeworks. For more information, see [the course wiki](https://github.com/utcompling/applied-nlp/wiki). There is also [a class mailing list](https://groups.google.com/forum/?hl=en&fromgroups#!forum/ut-austin-applied-nlp). Individuals who are not in the class at UT Austin are welcome to join in the discussion.
+## What is it?
 
-## Requirements
+This is a shell repository for code to create classifiers for polarity classification for tweets. The instructions may be found in [the description of homework five]() for the [@appliednlp](http://twitter.com/appliednlp) course.
 
-* Version 1.6 of the Java 2 SDK (http://java.sun.com)
+## Why is it?
 
-## Configuring your environment variables
+Some people [have it in for computational linguists](http://xkcd.com/114/), so we gotta fight back and start categorizing all those sentimental, emotion-laden wimps out there, with all their #firstworldproblems. Let the machine learning commence!
 
-The easiest thing to do is to set the environment variables `JAVA_HOME`
-and `ANLP_DIR` to the relevant locations on your system. Set `JAVA_HOME`
-to match the top level directory containing the Java installation you
-want to use.
 
-Next, add the directory `ANLP_DIR/bin` to your path. For example, you
-can set the path in your `.bashrc` file as follows:
 
-	export PATH=$PATH:$ANLP_DIR/bin
 

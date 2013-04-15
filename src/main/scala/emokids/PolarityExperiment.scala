@@ -52,7 +52,7 @@ object PolarityExperiment {
     lazy val (evalLabels, _, evalTweets) = DatasetReader(evalSource).unzip3
 
     lazy val featurizer = 
-      if (opts.extended()) ExtendedFeaturizer else new BowFeaturizer
+      if (opts.extended()) ExtendedFeaturizer else BasicFeaturizer
 
     val classifier = opts.method() match {
       case "majority" => MajorityClassBaseline(trainingLabels)
@@ -67,7 +67,7 @@ object PolarityExperiment {
     }
 
     val tweetTexts = evalTweets.map(_.content)
-    val (predictions, confidence) = tweetTexts.map(classifier).unzip
+    val (predictions, confidence) = evalTweets.map(classifier).unzip
 
     println(nak.util.ConfusionMatrix(evalLabels, predictions, tweetTexts))
 

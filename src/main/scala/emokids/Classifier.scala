@@ -14,14 +14,14 @@ import nak.data.{FeatureObservation,Featurizer}
  * the best label for the input and the confidence assigned to that label by the
  * classifier.
  */
-trait TextClassifier extends (String => (String, Double))
+trait TextClassifier[I] extends (I => (String, Double))
 
 /**
  * A text classifier that assigns a single label to every text that is given to it.
  */
 class MajorityClassBaseline(majorityClass: String, prob: Double)
-  extends TextClassifier {
-  def apply(content: String) = (majorityClass, prob)
+  extends TextClassifier[Tweet] {
+  def apply(content: Tweet) = (majorityClass, prob)
 }
 
 /**
@@ -59,7 +59,7 @@ object Tokenizer {
  * label based on these counts. The label "neutral" is chosen when there are 
  * equal numbers of positive and negative tokens (or zero of both).
  */
-class LexiconRatioClassifier extends TextClassifier {
+class LexiconRatioClassifier extends TextClassifier[Tweet] {
   import Polarity._
 
   // Return the number of positive tokens in the token sequence.
@@ -68,7 +68,8 @@ class LexiconRatioClassifier extends TextClassifier {
   // Return the number of negative tokens in the token sequence.
   def numNegativeTokens(tokens: Seq[String]): Int = tokens.count(negative)
 
-  def apply(content: String) = {
+  def apply(tweet: Tweet) = {
+    val content = tweet.content
 
     val tokens = Tokenizer(content)
     val numPositive = numPositiveTokens(tokens)
@@ -102,12 +103,12 @@ class LexiconRatioClassifier extends TextClassifier {
  * An adaptor class that allows a maxent model trained via OpenNLP Maxent to be
  * used in a way that conforms with the TextClassifier trait defined above.
  */
-class NakClassifier(classifier: LinearModelAdaptor, featurizer: Featurizer[String,String])
-  extends TextClassifier {
+class NakClassifier[I](classifier: LinearModelAdaptor, featurizer: Featurizer[I,String])
+  extends TextClassifier[I] {
   val numOutcomes = classifier.getNumOutcomes
   val outcomes = (0 until numOutcomes).map(classifier.getOutcome(_))
 
-  def apply(content: String) = {
+  def apply(content: I) = {
     val prediction = classifier.evalRaw(featurizer(content)).toIndexedSeq
     val (prob, index) = prediction.zipWithIndex.maxBy(_._1)
     (outcomes(index), prob)
@@ -126,12 +127,12 @@ object NakClassifierTrainer {
   import nak.liblinear.LiblinearConfig
 
   def apply(config: LiblinearConfig, 
-            featurizer: Featurizer[String,String], 
+            featurizer: Featurizer[Tweet,String], 
             labels: Seq[String], 
             tweets: Seq[Tweet]) = {
 
     val rawExamples = for ((l,t) <- labels.zip(tweets)) yield 
-      Example(l,t).map(tweet => featurizer(tweet.content))
+      Example(l,t).map(featurizer)
 
     val indexer = new ExampleIndexer    
     val examples = rawExamples.map(indexer)
@@ -139,7 +140,7 @@ object NakClassifierTrainer {
         
     // Configure and train with liblinear.
     val classifier = LiblinearTrainer.train(examples, lmapFixed, fmapFixed, config)
-    new NakClassifier(classifier, featurizer)
+    new NakClassifier[Tweet](classifier, featurizer)
   }
 
 }
@@ -148,12 +149,18 @@ object AttrVal {
   def apply(a: String, v: String) = FeatureObservation(a+":"+v)
 }
 
+object BasicFeaturizer extends Featurizer[Tweet,String] {
+  def apply(tweet: Tweet) =
+    tweet.content.split("\\s+").map(token => FeatureObservation(token))
+}
+
+
 /**
  * An implementation of a FeatureExtractor that extracts more information out
  * of a tweet than the DefaultFeatureExtractor defined in ClassifierUtil.scala.
  * This is the main part of the assignment.
  */
-object ExtendedFeaturizer extends Featurizer[String,String] {
+object ExtendedFeaturizer extends Featurizer[Tweet,String] {
 
   // Import any classes and objects you need here. AttrVal is included already.
   import scala.util.matching.Regex
@@ -181,7 +188,8 @@ object ExtendedFeaturizer extends Featurizer[String,String] {
   // The implicit conversion of Regex to Matcher.
   implicit def regexToMatcher(regex: Regex) = new Matcher(regex)
 
-  def apply(content: String) = {
+  def apply(tweet: Tweet) = {
+    val content = tweet.content
     val tokens = Tokenizer(content).toSeq
     val contentTokens = tokens.filter(stopwords)
     val stems = tokens.map(stemmer(_))
@@ -236,7 +244,7 @@ object ExtendedFeaturizer extends Featurizer[String,String] {
     }.toSeq
 
     (unigrams
-      ++ Seq(AttrVal("lexratio", lexClassifier(content)._1))
+      ++ Seq(AttrVal("lexratio", lexClassifier(tweet)._1))
       ++ bigrams
       ++ bigramPolarity
       ++ emphasisFeatures

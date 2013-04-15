@@ -6,7 +6,7 @@ package emokids
  * something that you think is a problem, contact the instructor to make a bug report.
  */
 
-import nak.core.{LinearModel,LiblinearTrainer,LinearModelAdaptor}
+import nak.core.{LinearModel,LiblinearTrainer,LinearModelAdaptor,FeaturizedClassifier}
 import nak.data.{FeatureObservation,Featurizer}
 
 /**
@@ -103,15 +103,13 @@ class LexiconRatioClassifier extends TextClassifier[Tweet] {
  * An adaptor class that allows a maxent model trained via OpenNLP Maxent to be
  * used in a way that conforms with the TextClassifier trait defined above.
  */
-class NakClassifier[I](classifier: LinearModelAdaptor, featurizer: Featurizer[I,String])
+class NakClassifier[I](classifier: FeaturizedClassifier[I])
   extends TextClassifier[I] {
-  val numOutcomes = classifier.getNumOutcomes
-  val outcomes = (0 until numOutcomes).map(classifier.getOutcome(_))
 
   def apply(content: I) = {
-    val prediction = classifier.evalRaw(featurizer(content)).toIndexedSeq
+    val prediction = classifier(content).toIndexedSeq
     val (prob, index) = prediction.zipWithIndex.maxBy(_._1)
-    (outcomes(index), prob)
+    (classifier.getOutcome(index), prob)
   }
 }
 
@@ -120,24 +118,16 @@ class NakClassifier[I](classifier: LinearModelAdaptor, featurizer: Featurizer[I,
  */
 object NakClassifierTrainer {
 
-  import nak.data.{Example,ExampleIndexer}
   import nak.liblinear.LiblinearConfig
 
   def apply(config: LiblinearConfig, 
             featurizer: Featurizer[Tweet,String], 
             labels: Seq[String], 
             tweets: Seq[Tweet]) = {
-
-    val rawExamples = for ((l,t) <- labels.zip(tweets)) yield 
-      Example(l,t).map(featurizer)
-
-    val indexer = new ExampleIndexer    
-    val examples = rawExamples.map(indexer)
-    val (lmapFixed,fmapFixed) = indexer.getMaps
-        
+    
     // Configure and train with liblinear.
-    val classifier = LiblinearTrainer.train(examples, lmapFixed, fmapFixed, config)
-    new NakClassifier[Tweet](classifier, featurizer)
+    val classifier = LiblinearTrainer.train(config, featurizer, labels, tweets)
+    new NakClassifier[Tweet](classifier)
   }
 
 }

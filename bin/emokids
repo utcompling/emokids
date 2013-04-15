@@ -12,7 +12,6 @@ then
     JAVA_MEM_FLAG=-Xmx4g
 fi
 
-#JARS="`find $HOME/.ivy2/ -name '*.jar' -print | tr '\n' ':'`"
 MANAGED_JARS="`find $EMOKIDS_DIR/lib_managed -name '*.jar' -print | tr '\n' ':'`"
 UNMANAGED_JARS="`find $EMOKIDS_DIR/lib -name '*.jar' -print | tr '\n' ':'`"
 
@@ -31,6 +30,7 @@ help()
 cat <<EOF
 emokids 0.1 commands: 
 
+  exp           run an experiment (train and evaluate a model)  
   run           run the main method of a given class
 
 Include --help with any option for more information
@@ -40,6 +40,7 @@ EOF
 CLASS=
 
 case $CMD in
+    exp) CLASS=emokids.PolarityExperiment;;
     run) CLASS=$1; shift;;
     help) help; exit 1;;
     *) echo "Unrecognized command: $CMD"; help; exit 1;;

@@ -14,17 +14,15 @@ Classification application.
 
 For usage see below:
 	     """)
+    val method = opt[String]("method", default=Some("L2R_L2"), descr="The type of solver to use. Possible values: majorit, lexicon, or any liblinear solver type.")
 
-    val methodTypes = Set("lexicon","majority","maxent")
-    val method = opt[String]("method", default=Some("maxent"), validate = methodTypes, descr="The type of solver to use. Possible values: " + methodTypes.toSeq.sorted.mkString(",") )
+    val cost = opt[Double]("cost", default=Some(1.0), validate = (0<), descr="The cost parameter C. Bigger values means less regularization (more fidelity to the training set).")
 
-    val cost = opt[Double]("cost", default=Some(1.0), validate = (0<), descr="The cost parameter C. Bigger values means less regularization (more fidelity to the training set). Note: if you are using the GIS solver, this option instead indicates the standard deviation of the Gaussian penalty (bigger values still mean less regularization).")
-
-    val trainfile = opt[String]("train", required=true,descr="The file containing training events.")
+    val trainfile = opt[String]("train", descr="The file containing training events.")
 
     val evalfile = opt[String]("eval", descr="The file containing evalualation events.")
 
-    val extended = opt[Boolean]("extended", noshort = true, descr="Use extended features.")
+    val extended = opt[Boolean]("extended", short = 'x', descr="Use extended features.")
 
     val help = opt[Boolean]("help", noshort = true, descr="Show this message")
 
@@ -59,11 +57,11 @@ object PolarityExperiment {
 
       case "lexicon" => new LexiconRatioClassifier
 
-      case "maxent" =>
-        val config = new nak.liblinear.LiblinearConfig(cost=opts.cost())
+      case solverDescription =>
+        val solver = nak.liblinear.Solver(solverDescription)
+        val config = new nak.liblinear.LiblinearConfig(solverType=solver,cost=opts.cost())
         NakClassifierTrainer(config, featurizer, trainingLabels, trainingTweets)
 
-      case _ => throw new MatchError("Invalid method: " + opts.method())
     }
 
     val tweetTexts = evalTweets.map(_.content)

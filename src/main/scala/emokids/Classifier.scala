@@ -125,11 +125,9 @@ object NakClassifierTrainer {
   import nak.data.{Example,ExampleIndexer,BowFeaturizer}
   import nak.liblinear.LiblinearConfig
 
-  def apply(extractor: FeatureExtractor, 
+  def apply(featurizer: Featurizer[String,String], 
             labels: Seq[String], tweets: Seq[Tweet], 
             sigma: Double = 1.0, maxIterations: Int = 100) = {
-
-    val featurizer = new BowFeaturizer
 
     val rawExamples = for ((l,t) <- labels.zip(tweets)) yield 
       Example(l,t).map(tweet => featurizer(tweet.content))
@@ -146,38 +144,6 @@ object NakClassifierTrainer {
 
 }
 
-/**
- * A class that adapts a Scala Iterator of Event objects into an EventStream needed
- * by Nak.
- */
-class IteratorEventStream(events: Iterator[nak.core.Event])
-  extends nak.data.AbstractEventStream {
-  def next = events.next
-  def hasNext = events.hasNext
-}
-
-
-/**
- * An object that implements a function that extracts a sequence of features from
- * a string. Each feature is expressed as an AttrVal object, which is a simple case
- * class that holds an attribute (a String) and a value (also a String). For example,
- * you can create an AttrVal object like so:
- *   val foo = AttrVal("day","Sunday")
- * If you do foo.toString, you'll get "day=Sunday".
- *
- * See DefaultFeatureExtractor for a simple example feature extractor.
- */
-trait FeatureExtractor extends (String => Seq[FeatureObservation[String]])
-
-/**
- * A feature extractor that tokenizes a String by whitespace, and then produces a
- * a feature (AttrVal object) with attribute "unigram" for each token.
- */
-object DefaultFeatureExtractor extends FeatureExtractor {
-  def apply(content: String) =
-    content.split("\\s+").map(token => AttrVal("unigram", token)).toSeq
-}
-
 object AttrVal {
   def apply(a: String, v: String) = FeatureObservation(a+":"+v)
 }
@@ -187,7 +153,7 @@ object AttrVal {
  * of a tweet than the DefaultFeatureExtractor defined in ClassifierUtil.scala.
  * This is the main part of the assignment.
  */
-object ExtendedFeatureExtractor extends FeatureExtractor {
+object ExtendedFeaturizer extends Featurizer[String,String] {
 
   // Import any classes and objects you need here. AttrVal is included already.
   import scala.util.matching.Regex

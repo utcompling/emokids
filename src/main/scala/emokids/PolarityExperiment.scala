@@ -40,6 +40,7 @@ For usage see below:
 object PolarityExperiment {
 
   import java.io.File
+  import nak.data.BowFeaturizer
 
   def main(args: Array[String]) {
 
@@ -50,9 +51,8 @@ object PolarityExperiment {
     lazy val (trainingLabels, _, trainingTweets) = DatasetReader(trainSource).unzip3
     lazy val (evalLabels, _, evalTweets) = DatasetReader(evalSource).unzip3
 
-    lazy val featureExtractor = 
-      if (opts.extended()) ExtendedFeatureExtractor
-      else DefaultFeatureExtractor
+    lazy val featurizer = 
+      if (opts.extended()) ExtendedFeaturizer else new BowFeaturizer
 
     val classifier = opts.method() match {
       case "majority" => MajorityClassBaseline(trainingLabels)
@@ -60,7 +60,7 @@ object PolarityExperiment {
       case "lexicon" => new LexiconRatioClassifier
 
       case "maxent" =>
-        NakClassifierTrainer(featureExtractor, trainingLabels, trainingTweets, opts.cost())
+        NakClassifierTrainer(featurizer, trainingLabels, trainingTweets, opts.cost())
 
       case _ => throw new MatchError("Invalid method: " + opts.method())
     }

@@ -116,14 +116,11 @@ class NakClassifier[I](classifier: LinearModelAdaptor, featurizer: Featurizer[I,
 }
 
 /**
- * An adaptor that converts the tweets being classified into the event objects
- * needed to train an OpenNLP Maxent classifier, plus the ability to specify
- * the standard deviation (sigma) of the Gaussian prior, and the maximum number
- * of iterations. (Reasonable defaults for both are provided.)
+ * Train on the given examples using the provided featurizer and configuration.
  */
 object NakClassifierTrainer {
 
-  import nak.data.{Example,ExampleIndexer,BowFeaturizer}
+  import nak.data.{Example,ExampleIndexer}
   import nak.liblinear.LiblinearConfig
 
   def apply(config: LiblinearConfig, 
@@ -151,7 +148,7 @@ object AttrVal {
 
 object BasicFeaturizer extends Featurizer[Tweet,String] {
   def apply(tweet: Tweet) =
-    tweet.content.split("\\s+").map(token => FeatureObservation(token))
+    Tokenizer(tweet.content).map(token => FeatureObservation(token))
 }
 
 

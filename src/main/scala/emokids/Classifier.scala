@@ -125,9 +125,10 @@ object NakClassifierTrainer {
   import nak.data.{Example,ExampleIndexer,BowFeaturizer}
   import nak.liblinear.LiblinearConfig
 
-  def apply(featurizer: Featurizer[String,String], 
-            labels: Seq[String], tweets: Seq[Tweet], 
-            sigma: Double = 1.0, maxIterations: Int = 100) = {
+  def apply(config: LiblinearConfig, 
+            featurizer: Featurizer[String,String], 
+            labels: Seq[String], 
+            tweets: Seq[Tweet]) = {
 
     val rawExamples = for ((l,t) <- labels.zip(tweets)) yield 
       Example(l,t).map(tweet => featurizer(tweet.content))
@@ -137,7 +138,6 @@ object NakClassifierTrainer {
     val (lmapFixed,fmapFixed) = indexer.getMaps
         
     // Configure and train with liblinear.
-    val config = new LiblinearConfig(cost=sigma)
     val classifier = LiblinearTrainer.train(examples, lmapFixed, fmapFixed, config)
     new NakClassifier(classifier, featurizer)
   }

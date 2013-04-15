@@ -60,7 +60,8 @@ object PolarityExperiment {
       case "lexicon" => new LexiconRatioClassifier
 
       case "maxent" =>
-        NakClassifierTrainer(featurizer, trainingLabels, trainingTweets, opts.cost())
+        val config = new nak.liblinear.LiblinearConfig(cost=opts.cost())
+        NakClassifierTrainer(config, featurizer, trainingLabels, trainingTweets)
 
       case _ => throw new MatchError("Invalid method: " + opts.method())
     }

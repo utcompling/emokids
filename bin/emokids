@@ -30,8 +30,9 @@ help()
 cat <<EOF
 emokids 0.1 commands: 
 
-  exp           run an experiment (train and evaluate a model)  
-  run           run the main method of a given class
+  convert-stanford convert the Stanford data to the standard XML format
+  exp              run an experiment (train and evaluate a model)  
+  run              run the main method of a given class
 
 Include --help with any option for more information
 EOF
@@ -40,6 +41,7 @@ EOF
 CLASS=
 
 case $CMD in
+    convert-stanford) CLASS=emokids.StanfordToXmlConverter;;
     exp) CLASS=emokids.PolarityExperiment;;
     run) CLASS=$1; shift;;
     help) help; exit 1;;

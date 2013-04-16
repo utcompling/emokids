@@ -14,18 +14,16 @@ Classification application.
 
 For usage see below:
 	     """)
-    val method = opt[String]("method", default=Some("L2R_L2"), descr="The type of solver to use. Possible values: majorit, lexicon, or any liblinear solver type.")
+    val method = opt[String]("method", default=Some("L2R_LR"), descr="The type of solver to use. Possible values: majorit, lexicon, or any liblinear solver type.")
 
     val cost = opt[Double]("cost", default=Some(1.0), validate = (0<), descr="The cost parameter C. Bigger values means less regularization (more fidelity to the training set).")
 
     val trainfile = opt[String]("train", descr="The file containing training events.")
-
+    val auxtrainfile = opt[String]("auxtrain", descr="An auxiliary file containing additional training events.")
     val evalfile = opt[String]("eval", descr="The file containing evalualation events.")
-
     val extended = opt[Boolean]("extended", short = 'x', descr="Use extended features.")
-
-    val help = opt[Boolean]("help", noshort = true, descr="Show this message")
-
+    val help = opt[Boolean]("help", noshort=true, descr="Show this message")
+    val detailed = opt[Boolean]("detailed")
     val verbose = opt[Boolean]("verbose")
   }
 }
@@ -45,29 +43,39 @@ object PolarityExperiment {
     val opts = PolarityExperimentOpts(args)
 
     lazy val trainSource = new File(opts.trainfile())
-    lazy val evalSource = new File(opts.evalfile())
     lazy val (trainingLabels, _, trainingTweets) = DatasetReader(trainSource).unzip3
+    
+    lazy val (allTrainingLabels, allTrainingTweets) = if (opts.auxtrainfile.isSupplied) {
+      val auxSource = new File(opts.auxtrainfile())
+      val (auxLabels, _, auxTweets) = DatasetReader(auxSource).unzip3
+      (trainingLabels ++ auxLabels, trainingTweets ++ auxTweets)
+    } else {
+      (trainingLabels, trainingTweets)
+    }
+
+    lazy val evalSource = new File(opts.evalfile())
     lazy val (evalLabels, _, evalTweets) = DatasetReader(evalSource).unzip3
 
-    lazy val featurizer = 
-      if (opts.extended()) ExtendedFeaturizer else BasicFeaturizer
+    lazy val featurizer = if (opts.extended()) ExtendedFeaturizer else BasicFeaturizer
 
     val classifier = opts.method() match {
-      case "majority" => MajorityClassBaseline(trainingLabels)
+      case "majority" => MajorityClassBaseline(allTrainingLabels)
 
       case "lexicon" => new LexiconRatioClassifier
 
       case solverDescription =>
         val solver = nak.liblinear.Solver(solverDescription)
         val config = new nak.liblinear.LiblinearConfig(solverType=solver,cost=opts.cost())
-        NakClassifierTrainer(config, featurizer, trainingLabels, trainingTweets)
+        NakClassifierTrainer(config, featurizer, allTrainingLabels, allTrainingTweets)
 
     }
 
     val tweetTexts = evalTweets.map(_.content)
     val (predictions, confidence) = evalTweets.map(classifier).unzip
 
-    println(nak.util.ConfusionMatrix(evalLabels, predictions, tweetTexts))
+    val cmatrix = nak.util.ConfusionMatrix(evalLabels, predictions, tweetTexts)
+    
+    if (opts.detailed()) println(cmatrix.detailedOutput) else println(cmatrix)
 
   }
 

@@ -41,3 +41,62 @@ object DatasetReader {
   }
 
 }
+
+object StanfordToXmlConverter {
+
+  def main(args: Array[String]) {
+
+    println("<dataset>")
+    for (line <- io.Source.fromFile(args(0)).getLines) {
+      val Array(polarityIndex, id, date, target, user, tweet) = line.split(";;")
+      val polarity = polarityIndex match {
+        case "0" => "negative"
+        case "2" => "neutral"
+        case "4" => "positive"
+      }
+   
+      val itemXml = 
+        <item tweetid={id} label={polarity} target={target} username={user}>
+          <content>{tweet}</content>
+        </item>
+      
+      println(itemXml)
+
+    }
+    
+    println("</dataset>")
+
+  }
+
+}
+
+
+object EmoticonToXmlConverter {
+
+  import java.io.File
+
+  def main(args: Array[String]) {
+    val emoticonDir = new File(args(0))
+    val files = List("neutral.txt", "sad.txt", "neutral.txt").map(f=>new File(emoticonDir,f))
+    
+    val labels = List("positive","negative","neutral")
+    println("<dataset>")
+    for ((file,label) <- files.zip(labels))
+      getItems(file,label).foreach(println)
+    println("</dataset>")
+  }
+
+  val EmoItemRE = """^(\d+)\t(\d+)\t(.*)$""".r
+
+  def getItems(file: File, label: String) = {
+    for (line <- io.Source.fromFile(file).getLines) yield {
+      //println("*************")
+      //println("--- " + line.split("\\t").foreach(println))
+      val EmoItemRE(tweetid, userid, tweet) = line
+      <item tweetid={tweetid} label={label} target={"unknown"} username={userid}>
+        <content>{tweet}</content>
+      </item>
+    }
+  }
+
+}

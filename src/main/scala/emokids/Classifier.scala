@@ -7,7 +7,7 @@ package emokids
  */
 
 import nak.NakContext._
-import nak.core.{LinearModel,LiblinearTrainer,LinearModelAdaptor,FeaturizedClassifier}
+import nak.core.{LinearModel,LinearModelAdaptor,FeaturizedClassifier}
 import nak.data.{FeatureObservation,Featurizer}
 
 /**

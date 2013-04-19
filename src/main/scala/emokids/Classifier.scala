@@ -6,6 +6,7 @@ package emokids
  * something that you think is a problem, contact the instructor to make a bug report.
  */
 
+import nak.NakContext._
 import nak.core.{LinearModel,LiblinearTrainer,LinearModelAdaptor,FeaturizedClassifier}
 import nak.data.{FeatureObservation,Featurizer}
 
@@ -103,33 +104,14 @@ class LexiconRatioClassifier extends TextClassifier[Tweet] {
  * An adaptor class that allows a maxent model trained via OpenNLP Maxent to be
  * used in a way that conforms with the TextClassifier trait defined above.
  */
-class NakClassifier[I](classifier: FeaturizedClassifier[I])
+class NakClassifier[I](classifier: FeaturizedClassifier[String,I])
   extends TextClassifier[I] {
 
   def apply(content: I) = {
-    val prediction = classifier(content).toIndexedSeq
+    val prediction = classifier.evalRaw(content).toIndexedSeq
     val (prob, index) = prediction.zipWithIndex.maxBy(_._1)
-    (classifier.getOutcome(index), prob)
+    (classifier.labelOfIndex(index), prob)
   }
-}
-
-/**
- * Train on the given examples using the provided featurizer and configuration.
- */
-object NakClassifierTrainer {
-
-  import nak.liblinear.LiblinearConfig
-
-  def apply(config: LiblinearConfig, 
-            featurizer: Featurizer[Tweet,String], 
-            labels: Seq[String], 
-            tweets: Seq[Tweet]) = {
-    
-    // Configure and train with liblinear.
-    val classifier = LiblinearTrainer.train(config, featurizer, labels, tweets)
-    new NakClassifier[Tweet](classifier)
-  }
-
 }
 
 object AttrVal {

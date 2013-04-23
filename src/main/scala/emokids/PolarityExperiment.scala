@@ -14,13 +14,12 @@ Classification application.
 
 For usage see below:
 	     """)
-    val method = opt[String]("method", default=Some("L2R_LR"), descr="The type of solver to use. Possible values: majorit, lexicon, or any liblinear solver type.")
+    val method = opt[String]("method", default=Some("L2R_LR"), descr="The type of solver to use. Possible values: majority , lexicon, or any liblinear solver type.")
 
     val cost = opt[Double]("cost", default=Some(1.0), validate = (0<), descr="The cost parameter C. Bigger values means less regularization (more fidelity to the training set).")
 
-    val trainfile = opt[String]("train", descr="The file containing training events.")
-    val auxtrainfile = opt[String]("auxtrain", descr="An auxiliary file containing additional training events.")
-    val evalfile = opt[String]("eval", descr="The file containing evalualation events.")
+    val trainfiles = opt[List[String]]("train", descr="The files containing training events.")
+    val evalfiles = opt[List[String]]("eval", descr="The files containing evalualation events.")
     val extended = opt[Boolean]("extended", short = 'x', descr="Use extended features.")
     val help = opt[Boolean]("help", noshort=true, descr="Show this message")
     val detailed = opt[Boolean]("detailed")
@@ -36,46 +35,49 @@ For usage see below:
 object PolarityExperiment {
 
   import java.io.File
-  import nak.data.BowFeaturizer
+  import nak.NakContext._
+  import nak.util.ConfusionMatrix
 
   def main(args: Array[String]) {
 
     val opts = PolarityExperimentOpts(args)
 
-    lazy val trainSource = new File(opts.trainfile())
-    lazy val (trainingLabels, _, trainingTweets) = DatasetReader(trainSource).unzip3
-    
-    lazy val (allTrainingLabels, allTrainingTweets) = if (opts.auxtrainfile.isSupplied) {
-      val auxSource = new File(opts.auxtrainfile())
-      val (auxLabels, _, auxTweets) = DatasetReader(auxSource).unzip3
-      (trainingLabels ++ auxLabels, trainingTweets ++ auxTweets)
-    } else {
-      (trainingLabels, trainingTweets)
-    }
-
-    lazy val evalSource = new File(opts.evalfile())
-    lazy val (evalLabels, _, evalTweets) = DatasetReader(evalSource).unzip3
+    val examples = 
+      for (file <- opts.trainfiles(); ex <- DatasetReader(new File(file))) 
+        yield ex
 
     lazy val featurizer = if (opts.extended()) ExtendedFeaturizer else BasicFeaturizer
 
     val classifier = opts.method() match {
-      case "majority" => MajorityClassBaseline(allTrainingLabels)
+      case "majority" => MajorityClassBaseline(examples.map(_.label))
 
       case "lexicon" => new LexiconRatioClassifier
 
       case solverDescription =>
         val solver = nak.liblinear.Solver(solverDescription)
         val config = new nak.liblinear.LiblinearConfig(solverType=solver,cost=opts.cost())
-        NakClassifierTrainer(config, featurizer, allTrainingLabels, allTrainingTweets)
-
+        new NakClassifier(trainClassifier(config, featurizer, examples))
     }
 
-    val tweetTexts = evalTweets.map(_.content)
-    val (predictions, confidence) = evalTweets.map(classifier).unzip
-
-    val cmatrix = nak.util.ConfusionMatrix(evalLabels, predictions, tweetTexts)
+    val results = for (file <- opts.evalfiles()) yield {
+      val evalSource = new File(file)
+      val evalExamples = DatasetReader(evalSource)
+      val evalTweets = evalExamples.map(_.features)
+      val (predictions, confidence) = evalTweets.map(classifier).unzip
+      val tweetTexts = evalTweets.map(_.content)
+      val cmatrix = ConfusionMatrix(evalExamples.map(_.label), predictions, tweetTexts)
+      (file, cmatrix)
+    }
     
-    if (opts.detailed()) println(cmatrix.detailedOutput) else println(cmatrix)
+    for ((file,cmatrix) <- results) {
+      println("################################################################################")
+      println("Evaluating " + file)
+      if (opts.detailed()) 
+        println(cmatrix.detailedOutput) 
+      else 
+        println(cmatrix)
+      println
+    }
 
   }
 

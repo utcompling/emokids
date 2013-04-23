@@ -16,13 +16,14 @@ case class Tweet(val tweetid: String, val username: String, val content: String)
  */
 object DatasetReader {
 
+  import nak.data.Example
   import scala.xml._
   import java.io.File
 
   // Allow NodeSeqs to implicitly convert to Strings when needed.
   implicit def nodeSeqToString(ns: NodeSeq) = ns.text
 
-  def apply(file: File): Seq[(String, String, Tweet)] = {
+  def apply(file: File): Seq[Example[String, Tweet]] = {
     val itemsXml = XML.loadFile(file)
 
     (itemsXml \ "item").flatMap { itemNode =>
@@ -31,10 +32,10 @@ object DatasetReader {
       // We only want the positive, negative and neutral items.
       label match {
         case "negative" | "positive" | "neutral" =>
-          Some(label,
-            (itemNode \ "@target").text,
-            Tweet(itemNode \ "@tweetid", itemNode \ "@username", itemNode.text.trim))
-
+          // Note: the target is: (itemNode \ "@target").text,
+          val tweet = Tweet(itemNode \ "@tweetid", itemNode \ "@username", itemNode.text.trim)
+          Some(Example(label,tweet))
+            
         case _ => None
       }
     }
@@ -77,7 +78,7 @@ object EmoticonToXmlConverter {
 
   def main(args: Array[String]) {
     val emoticonDir = new File(args(0))
-    val files = List("neutral.txt", "sad.txt", "neutral.txt").map(f=>new File(emoticonDir,f))
+    val files = List("happy.txt", "sad.txt", "neutral.txt").map(f=>new File(emoticonDir,f))
     
     val labels = List("positive","negative","neutral")
     println("<dataset>")

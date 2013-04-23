@@ -42,6 +42,7 @@ CLASS=
 
 case $CMD in
     convert-stanford) CLASS=emokids.StanfordToXmlConverter;;
+    convert-emoticon) CLASS=emokids.EmoticonToXmlConverter;;
     exp) CLASS=emokids.PolarityExperiment;;
     run) CLASS=$1; shift;;
     help) help; exit 1;;

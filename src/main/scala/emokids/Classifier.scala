@@ -1,11 +1,5 @@
 package emokids
 
-/**
- * This is a helper file for the homework. You do not need to modify anything in it
- * to complete the assignment. In fact, don't change anything in it. If you find
- * something that you think is a problem, contact the instructor to make a bug report.
- */
-
 import nak.NakContext._
 import nak.core.{LinearModel,LinearModelAdaptor,FeaturizedClassifier}
 import nak.data.{FeatureObservation,Featurizer}

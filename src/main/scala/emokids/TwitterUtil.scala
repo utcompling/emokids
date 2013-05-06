@@ -1,12 +1,6 @@
 package emokids
 
 /**
- * This is a helper file for the homework. You do not need to modify anything in it
- * to complete the assignment. In fact, don't change anything in it. If you find
- * something that you think is a problem, contact the instructor to make a bug report.
- */
-
-/**
  * A simple case class to store information associated with a Tweet.
  */
 case class Tweet(val tweetid: String, val username: String, val content: String)
@@ -34,6 +28,12 @@ object DatasetReader {
         case "negative" | "positive" | "neutral" =>
           // Note: the target is: (itemNode \ "@target").text,
           val tweet = Tweet(itemNode \ "@tweetid", itemNode \ "@username", itemNode.text.trim)
+
+          // Uncomment these lines and comment out the Some(Example(label,tweet)) line if 
+          // you want to just train on pos/neg examples from emoticons.
+          //if (file.getPath == "data/emoticon/train.xml" && label == "neutral") None
+          //else Some(Example(label,tweet))
+
           Some(Example(label,tweet))
             
         case _ => None
